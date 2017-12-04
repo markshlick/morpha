@@ -3,6 +3,7 @@ import * as PropTypes from 'prop-types';
 import { BrowserRouter as Router, Route, Link } from 'react-router-dom';
 
 interface MorphaProps {
+  style?: { [attr: string]: any };
   name: string;
   state: string;
   render: React.ComponentType;
@@ -20,7 +21,9 @@ const MorphaContextPropTypes = {
   startTransition: PropTypes.func.isRequired,
 };
 
-class MorphaProvider extends React.Component {
+class MorphaProvider extends React.Component<{
+  style?: { [attr: string]: any };
+}> {
   static childContextTypes = MorphaContextPropTypes;
 
   _container: HTMLDivElement | null;
@@ -53,7 +56,10 @@ class MorphaProvider extends React.Component {
 
   render() {
     return (
-      <div ref={_container => (this._container = _container)}>
+      <div
+        style={this.props.style}
+        ref={_container => (this._container = _container)}
+      >
         {this.props.children}
       </div>
     );
@@ -68,7 +74,10 @@ class MorphaContainer extends React.Component<MorphaProps> {
   render() {
     const MorphaComponent = this.props.render;
     return (
-      <div ref={_container => (this._container = _container)}>
+      <div
+        style={this.props.style}
+        ref={_container => (this._container = _container)}
+      >
         <MorphaComponent />
       </div>
     );
@@ -120,25 +129,54 @@ const data = {
   },
 };
 
-const MorphItem = morphStyles({})(({ id }) => <h2>{id}</h2>);
+const MorphItem = morphStyles({})(({ id }) => (
+  <div
+    style={{
+      backgroundColor: '#eee',
+      padding: 10,
+      height: '100%',
+      boxSizing: 'border-box',
+    }}
+  >
+    <h2>{id}</h2>
+  </div>
+));
 
 const Home = ({ items }: { items: { [id: string]: Item } }) => (
   <div>
     {Object.values(items).map(({ id }) => (
-      <Link key={id} to={`/feature/${id}`}>
-        <MorphaContainer
-          name={`card.${id}`}
-          state="small"
-          render={() => <MorphItem id={id} />}
-        />
-      </Link>
+      <div
+        style={{
+          height: 400,
+          width: 250,
+          padding: 20,
+          boxSizing: 'border-box',
+        }}
+      >
+        <Link key={id} to={`/feature/${id}`}>
+          <MorphaContainer
+            name={`card.${id}`}
+            state="small"
+            render={() => <MorphItem id={id} />}
+          />
+        </Link>
+      </div>
     ))}
   </div>
 );
 
 const Feature = ({ item: { id } }: { item: { id: string } }) => (
-  <div>
+  <div
+    style={{
+      height: '100%',
+      padding: 20,
+      maxWidth: '600px',
+      margin: '0 auto',
+      boxSizing: 'border-box',
+    }}
+  >
     <MorphaContainer
+      style={{ height: '100%' }}
       name={`card.${id}`}
       state="large"
       render={() => <MorphItem id={id} />}
@@ -147,8 +185,8 @@ const Feature = ({ item: { id } }: { item: { id: string } }) => (
 );
 
 const App: React.SFC<{}> = props => (
-  <div className="App">
-    <MorphaProvider>
+  <div className="App" style={{ height: '100%' }}>
+    <MorphaProvider style={{ height: '100%' }}>
       <Route exact path="/" component={() => <Home items={data.items} />} />
       <Route
         path="/feature/:id"

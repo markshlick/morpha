@@ -26,6 +26,7 @@ server
         <meta charSet='utf-8' />
         <title>morpha [WIP]</title>
         <meta name="viewport" content="width=device-width, initial-scale=1">
+        <link rel="stylesheet" href="/styles.css">
         ${
           assets.client.css
             ? `<link rel="stylesheet" href="${assets.client.css}">`

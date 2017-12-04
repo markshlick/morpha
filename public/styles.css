@@ -1,0 +1,25 @@
+* {
+  margin: 0;
+  padding: 0;
+  text-decoration: none;
+}
+
+* a {
+  color: rgb(145, 91, 181);
+}
+
+html,
+body {
+  height: 100%;
+  color: #222;
+  font-size: 18pt;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen,
+    Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+}
+
+#root {
+  height: 100%;
+}
