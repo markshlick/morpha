@@ -15,6 +15,21 @@ interface MorphaContext {
   startTransition: (node: React.ReactNode) => void;
 }
 
+interface TransitionProps {
+  toState: string;
+  fromState?: string;
+  toRect?: ClientRect;
+  fromRect?: ClientRect;
+  render?: React.ComponentType;
+}
+
+interface TransitionConfigProps {
+  name: string;
+  state: string;
+  rect?: ClientRect;
+  render?: React.ComponentType;
+}
+
 const MorphaContextPropTypes = {
   registerUnmount: PropTypes.func.isRequired,
   registerMount: PropTypes.func.isRequired,
@@ -27,23 +42,29 @@ class MorphaProvider extends React.Component<{
   static childContextTypes = MorphaContextPropTypes;
 
   _container: HTMLDivElement | null;
-  _transitionStore: object | null;
+  _transitionStore: { [name: string]: TransitionProps };
 
   constructor(props: any) {
     super(props);
     this._transitionStore = {};
   }
 
-  registerUnmount(params: any) {
-    console.log(params);
+  registerUnmount({ name, state, rect, render }: TransitionConfigProps) {
+    if (this._transitionStore[name]) {
+      this._transitionStore[name].fromState = state;
+      this._transitionStore[name].fromRect = rect;
+      this._transitionStore[name].render = render;
+    }
   }
 
-  registerMount(params: any) {
-    console.log(params);
+  registerMount({ name, state }: TransitionConfigProps) {
+    this._transitionStore[name] = { toState: state };
   }
 
-  startTransition(params: any) {
-    console.log(params);
+  startTransition({ name, state, rect, render }: TransitionConfigProps) {
+    if (this._transitionStore[name]) {
+      this._transitionStore[name].toRect = rect;
+    }
   }
 
   getChildContext() {
@@ -54,6 +75,11 @@ class MorphaProvider extends React.Component<{
     };
   }
 
+  // renderTransitioningComponents() {
+  //   return this._transitionStore
+  //     .map((transitionProps: any) => <MorphaTransition {...transitionProps} />);
+  // }
+
   render() {
     return (
       <div
@@ -61,6 +87,7 @@ class MorphaProvider extends React.Component<{
         ref={_container => (this._container = _container)}
       >
         {this.props.children}
+        {/* {this.renderTransitioningComponents()} */}
       </div>
     );
   }
