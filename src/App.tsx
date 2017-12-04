@@ -16,18 +16,19 @@ interface MorphaContext {
 }
 
 interface TransitionProps {
+  name: string;
   toState: string;
   fromState?: string;
   toRect?: ClientRect;
   fromRect?: ClientRect;
-  render?: React.ComponentType;
+  render: React.ComponentType;
 }
 
 interface TransitionConfigProps {
   name: string;
   state: string;
+  render: React.ComponentType;
   rect?: ClientRect;
-  render?: React.ComponentType;
 }
 
 const MorphaContextPropTypes = {
@@ -57,8 +58,8 @@ class MorphaProvider extends React.Component<{
     }
   }
 
-  registerMount({ name, state }: TransitionConfigProps) {
-    this._transitionStore[name] = { toState: state };
+  registerMount({ name, state, render }: TransitionConfigProps) {
+    this._transitionStore[name] = { name, render, toState: state };
   }
 
   startTransition({ name, state, rect, render }: TransitionConfigProps) {
@@ -75,10 +76,14 @@ class MorphaProvider extends React.Component<{
     };
   }
 
-  // renderTransitioningComponents() {
-  //   return this._transitionStore
-  //     .map((transitionProps: any) => <MorphaTransition {...transitionProps} />);
-  // }
+  renderTransitioningComponents() {
+    return Object.values(this._transitionStore).map(
+      ({ name, render }: TransitionProps) => {
+        const MorphaComponent = render;
+        return <MorphaComponent key={name} />;
+      },
+    );
+  }
 
   render() {
     return (
@@ -87,7 +92,7 @@ class MorphaProvider extends React.Component<{
         ref={_container => (this._container = _container)}
       >
         {this.props.children}
-        {/* {this.renderTransitioningComponents()} */}
+        {this.renderTransitioningComponents()}
       </div>
     );
   }
@@ -126,6 +131,7 @@ class MorphaContainer extends React.Component<MorphaProps> {
     this.context.registerMount({
       name: this.props.name,
       state: this.props.state,
+      render: this.props.render,
     });
   }
 
@@ -133,6 +139,7 @@ class MorphaContainer extends React.Component<MorphaProps> {
     const rect = this._container
       ? this._container.getBoundingClientRect()
       : null;
+
     this.context.startTransition({
       rect,
       name: this.props.name,
