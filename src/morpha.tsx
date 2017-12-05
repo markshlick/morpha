@@ -12,8 +12,8 @@ interface TransitionProps {
   name: string;
   toState: string;
   fromState: string;
-  fromRect: ClientRect;
   toRect: ClientRect;
+  fromRect: ClientRect;
   render: React.ComponentType;
 }
 
@@ -31,6 +31,15 @@ const MorphaContextPropTypes = {
   getTransitionRunningState: PropTypes.func.isRequired,
 };
 
+const clientRectToPOJO = (rect: ClientRect) => ({
+  top: rect.top,
+  right: rect.right,
+  bottom: rect.bottom,
+  left: rect.left,
+  width: rect.width,
+  height: rect.height,
+});
+
 export class MorphaProvider extends React.Component<{
   style?: { [attr: string]: any };
 }> {
@@ -47,7 +56,7 @@ export class MorphaProvider extends React.Component<{
   registerUnmount({ name, state, rect, render }: any) {
     if (this._transitionStore[name]) {
       this._transitionStore[name].fromState = state;
-      this._transitionStore[name].toRect = rect;
+      this._transitionStore[name].fromRect = rect;
       this._transitionStore[name].ready = true;
     }
   }
@@ -56,53 +65,56 @@ export class MorphaProvider extends React.Component<{
     this._transitionStore[name] = { name, render, toState: state };
   }
 
-  async startTransition({ name, state, rect, render }: any) {
-    const transition = this._transitionStore[name];
-    if (transition) {
-      transition.fromRect = rect;
-      if (transition.ready) {
-        transition.run = true;
-        transition.progress = 0;
-        this.forceUpdate(() => {
-          this.runTransition(name);
-        });
+  startTransition({ name, state, rect, render }: any) {
+    return new Promise(done => {
+      const transition = this._transitionStore[name];
+      if (transition) {
+        transition.toRect = rect;
+        if (transition.ready) {
+          transition.run = true;
+          transition.progress = 0;
+          this.forceUpdate(() => {
+            requestAnimationFrame(() => {
+              transition.toRect.top -= document.documentElement.scrollTop;
+              this.runTransition(name, done);
+            });
+          });
+        }
       }
-    }
+    });
   }
 
-  async runTransition(name: string) {
+  runTransition(name: string, done: () => void) {
     const transition = this._transitionStore[name];
     transition.progress = Math.min(
       1,
       transition.progress + transition.progress / 8 + 0.02,
     );
-    this.step(name);
 
-    if (transition.progress < 1) {
-      requestAnimationFrame(() => {
-        this.runTransition(name);
-      });
-    } else {
-      transition.run = false;
-      this.forceUpdate();
-    }
-  }
-
-  updatePositionProp(name: string, prop: string) {
-    const transition = this._transitionStore[name];
-    const val =
-      transition.toRect[prop] +
-      (transition.fromRect[prop] - transition.toRect[prop]) *
-        transition.progress;
-
-    transition.node.style[prop] = `${val}px`;
-  }
-
-  step(name: string) {
     this.updatePositionProp(name, 'top');
     this.updatePositionProp(name, 'left');
     this.updatePositionProp(name, 'height');
     this.updatePositionProp(name, 'width');
+
+    if (transition.progress < 1) {
+      requestAnimationFrame(() => {
+        this.runTransition(name, done);
+      });
+    } else {
+      transition.run = false;
+      this.forceUpdate(() => done());
+    }
+  }
+
+  updatePositionProp(name: string, prop: string, mod: number = 0) {
+    const transition = this._transitionStore[name];
+    const val =
+      mod +
+      transition.fromRect[prop] +
+      (transition.toRect[prop] - transition.fromRect[prop]) *
+        transition.progress;
+
+    transition.node.style[prop] = `${val}px`;
   }
 
   getTransitionRunningState({ name, state }: any) {
@@ -129,7 +141,7 @@ export class MorphaProvider extends React.Component<{
   renderTransitioningComponents() {
     return Object.values(this._transitionStore)
       .filter(({ run }) => run)
-      .map(({ name, render, toRect, fromRect }: TransitionProps) => {
+      .map(({ name, render, fromRect, toRect }: TransitionProps) => {
         const MorphaComponent = render;
 
         return (
@@ -139,10 +151,10 @@ export class MorphaProvider extends React.Component<{
             style={{
               position: 'fixed',
               transform: 'translate3d(0, 0, 0)',
-              top: toRect.top,
-              left: toRect.left,
-              width: toRect.width,
-              height: toRect.height,
+              top: fromRect.top,
+              left: fromRect.left,
+              width: fromRect.width,
+              height: fromRect.height,
             }}
           >
             <MorphaComponent />
@@ -185,9 +197,10 @@ export class MorphaContainer extends React.Component<MorphaProps> {
   }
 
   componentWillUnmount() {
-    const rect = this._container
-      ? this._container.getBoundingClientRect()
-      : null;
+    let rect;
+    if (this._container) {
+      rect = clientRectToPOJO(this._container.getBoundingClientRect());
+    }
 
     this.context.registerUnmount({
       rect,
@@ -205,14 +218,44 @@ export class MorphaContainer extends React.Component<MorphaProps> {
   }
 
   componentDidMount() {
-    const rect = this._container
-      ? this._container.getBoundingClientRect()
-      : null;
+    let rect;
+    if (this._container) {
+      rect = clientRectToPOJO(this._container.getBoundingClientRect());
+    }
 
     this.context.startTransition({
       rect,
       name: this.props.name,
     });
+  }
+}
+
+export class ScrollContainer extends React.Component {
+  render() {
+    return (
+      <div
+        style={{
+          height: '100%',
+          width: '100%',
+          position: 'relative',
+        }}
+      >
+        <div
+          style={{
+            height: '100%',
+            width: '100%',
+            overflow: 'scroll',
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            bottom: 0,
+            right: 0,
+          }}
+        >
+          {this.props.children}
+        </div>
+      </div>
+    );
   }
 }
 
