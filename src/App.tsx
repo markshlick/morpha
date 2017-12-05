@@ -2,154 +2,7 @@ import * as React from 'react';
 import * as PropTypes from 'prop-types';
 import { BrowserRouter as Router, Route, Link } from 'react-router-dom';
 
-interface MorphaProps {
-  style?: { [attr: string]: any };
-  name: string;
-  state: string;
-  render: React.ComponentType;
-}
-
-interface MorphaContext {
-  registerUnmount: (node: React.ReactNode) => void;
-  registerMount: (node: React.ReactNode) => void;
-  startTransition: (node: React.ReactNode) => void;
-}
-
-interface TransitionProps {
-  name: string;
-  toState: string;
-  fromState?: string;
-  toRect?: ClientRect;
-  fromRect?: ClientRect;
-  render: React.ComponentType;
-}
-
-interface TransitionConfigProps {
-  name: string;
-  state: string;
-  render: React.ComponentType;
-  rect?: ClientRect;
-}
-
-const MorphaContextPropTypes = {
-  registerUnmount: PropTypes.func.isRequired,
-  registerMount: PropTypes.func.isRequired,
-  startTransition: PropTypes.func.isRequired,
-};
-
-class MorphaProvider extends React.Component<{
-  style?: { [attr: string]: any };
-}> {
-  static childContextTypes = MorphaContextPropTypes;
-
-  _container: HTMLDivElement | null;
-  _transitionStore: { [name: string]: TransitionProps };
-
-  constructor(props: any) {
-    super(props);
-    this._transitionStore = {};
-  }
-
-  registerUnmount({ name, state, rect, render }: TransitionConfigProps) {
-    if (this._transitionStore[name]) {
-      this._transitionStore[name].fromState = state;
-      this._transitionStore[name].fromRect = rect;
-      this._transitionStore[name].render = render;
-    }
-  }
-
-  registerMount({ name, state, render }: TransitionConfigProps) {
-    this._transitionStore[name] = { name, render, toState: state };
-  }
-
-  startTransition({ name, state, rect, render }: TransitionConfigProps) {
-    if (this._transitionStore[name]) {
-      this._transitionStore[name].toRect = rect;
-    }
-  }
-
-  getChildContext() {
-    return {
-      registerUnmount: this.registerUnmount.bind(this),
-      registerMount: this.registerMount.bind(this),
-      startTransition: this.startTransition.bind(this),
-    };
-  }
-
-  renderTransitioningComponents() {
-    return Object.values(this._transitionStore).map(
-      ({ name, render }: TransitionProps) => {
-        const MorphaComponent = render;
-        return <MorphaComponent key={name} />;
-      },
-    );
-  }
-
-  render() {
-    return (
-      <div
-        style={this.props.style}
-        ref={_container => (this._container = _container)}
-      >
-        {this.props.children}
-        {this.renderTransitioningComponents()}
-      </div>
-    );
-  }
-}
-
-class MorphaContainer extends React.Component<MorphaProps> {
-  static contextTypes = MorphaContextPropTypes;
-
-  _container: HTMLDivElement | null;
-
-  render() {
-    const MorphaComponent = this.props.render;
-    return (
-      <div
-        style={this.props.style}
-        ref={_container => (this._container = _container)}
-      >
-        <MorphaComponent />
-      </div>
-    );
-  }
-
-  componentWillUnmount() {
-    const rect = this._container
-      ? this._container.getBoundingClientRect()
-      : null;
-
-    this.context.registerUnmount({
-      rect,
-      name: this.props.name,
-      state: this.props.state,
-    });
-  }
-
-  componentWillMount() {
-    this.context.registerMount({
-      name: this.props.name,
-      state: this.props.state,
-      render: this.props.render,
-    });
-  }
-
-  componentDidMount() {
-    const rect = this._container
-      ? this._container.getBoundingClientRect()
-      : null;
-
-    this.context.startTransition({
-      rect,
-      name: this.props.name,
-    });
-  }
-}
-
-const morphStyles = (styles: object) => (
-  x: React.ComponentType<{ [key: string]: any }>,
-) => x;
+import { MorphaProvider, MorphaContainer, morphStyles } from './morpha';
 
 interface Item {
   id: string;
@@ -159,6 +12,21 @@ const data = {
   items: {
     1: {
       id: '1',
+    },
+    2: {
+      id: '2',
+    },
+    3: {
+      id: '3',
+    },
+    4: {
+      id: '4',
+    },
+    5: {
+      id: '5',
+    },
+    6: {
+      id: '6',
     },
   },
 };
@@ -170,6 +38,7 @@ const MorphItem = morphStyles({})(({ id }) => (
       padding: 10,
       height: '100%',
       boxSizing: 'border-box',
+      border: '1px black solid',
     }}
   >
     <h2>{id}</h2>
@@ -177,17 +46,27 @@ const MorphItem = morphStyles({})(({ id }) => (
 ));
 
 const Home = ({ items }: { items: { [id: string]: Item } }) => (
-  <div>
+  <div
+    style={{
+      width: '100%',
+      height: '100%',
+    }}
+  >
     {Object.values(items).map(({ id }) => (
       <div
+        key={id}
         style={{
-          height: 400,
-          width: 250,
+          width: 240,
+          height: 300,
           padding: 20,
           boxSizing: 'border-box',
+          float: 'left',
         }}
       >
-        <Link key={id} to={`/feature/${id}`}>
+        <Link
+          to={`/feature/${id}`}
+          style={{ display: 'block', width: '100%', height: '100%' }}
+        >
           <MorphaContainer
             name={`card.${id}`}
             state="small"
@@ -210,7 +89,6 @@ const Feature = ({ item: { id } }: { item: { id: string } }) => (
     }}
   >
     <MorphaContainer
-      style={{ height: '100%' }}
       name={`card.${id}`}
       state="large"
       render={() => <MorphItem id={id} />}
