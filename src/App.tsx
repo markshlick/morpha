@@ -34,11 +34,11 @@ const data = {
 const MorphItem = morphStyles({})(({ id }) => (
   <div
     style={{
-      backgroundColor: '#eee',
-      padding: 10,
+      backgroundColor: '#ddd',
+      padding: 20,
       height: '100%',
       boxSizing: 'border-box',
-      border: '1px black solid',
+      borderRadius: 3,
     }}
   >
     <h2>{id}</h2>
