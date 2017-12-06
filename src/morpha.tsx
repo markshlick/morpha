@@ -230,17 +230,13 @@ export class MorphaProvider extends React.Component<{
         transition.prepareRun();
         transition.firstRun = true;
         this.forceUpdate(() => {
-          transition.firstRun = false;
           setTimeout(() => {
+            transition.firstRun = false;
             this.forceUpdate(() => {
-              setTimeout(() => {
-                transition.toRect = clientRectToPOJO(
-                  node.getBoundingClientRect(),
-                );
-                transition.run(() => {
-                  this.forceUpdate(done);
-                });
-              });
+              transition.toRect = clientRectToPOJO(
+                node.getBoundingClientRect(),
+              );
+              transition.run(() => this.forceUpdate(done));
             });
           });
         });
