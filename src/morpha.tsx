@@ -3,8 +3,6 @@ import * as PropTypes from 'prop-types';
 
 /*
   TODO:
-  - transition definitions to prevent copy/pasting the same config across
-    multiple MorphaContainers
   - cache the element returned from MorphaProps.render to prevent unnecessary
     (un)mounts
   - easings
