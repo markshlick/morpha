@@ -1,6 +1,11 @@
 import * as React from 'react';
 import * as PropTypes from 'prop-types';
 
+/*
+  TODO: cache the element returned from MorphaProps.render to prevent
+  unnecessary (un)mounts
+*/
+
 export interface MorphaInjectedProps {
   isMorphing?: boolean;
   fromState?: string;
