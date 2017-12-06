@@ -3,16 +3,22 @@ import * as PropTypes from 'prop-types';
 
 /*
   TODO:
+  - [priority] fix scroll bug
   - transition definitions to prevent copy/pasting the same config across
     multiple MorphaContainers
   - cache the element returned from MorphaProps.render to prevent unnecessary
     (un)mounts
   - easings
+  - expose a duration prop
   - expose a prop flag that will call MorphaProps.render with every transition
     tick (for vdom-driven libs like react-motion)
   - integrate with react-anime/CSSTransitionGroup
   - interruptability/reversability
 */
+
+interface Obj<T> {
+  [key: string]: T;
+}
 
 export interface MorphaInjectedProps {
   isMorphing?: boolean;
@@ -26,7 +32,6 @@ interface MorphaProps {
   style?: React.CSSProperties;
   name: string;
   state: string;
-  render: React.ComponentType<MorphaInjectedProps>;
 }
 
 interface TransitionProps {
@@ -53,10 +58,6 @@ interface ClientRectPOJO {
   left: number;
   width: number;
   height: number;
-}
-
-interface ReactStateStyles {
-  [key: string]: React.CSSProperties;
 }
 
 const MorphaProviderContextPropTypes = {
@@ -175,7 +176,7 @@ export class MorphaProvider extends React.Component<{
   static childContextTypes = MorphaProviderContextPropTypes;
 
   private container: HTMLDivElement | null;
-  private transitionStore: { [name: string]: MorphaTransition };
+  private transitionStore: Obj<MorphaTransition>;
 
   constructor(props: any) {
     super(props);
@@ -324,72 +325,83 @@ export class MorphaProvider extends React.Component<{
   }
 }
 
-export class MorphaContainer extends React.Component<MorphaProps> {
-  static contextTypes = MorphaProviderContextPropTypes;
+export const morpha = <TOriginalProps extends {}>(
+  BaseComponent: React.ComponentType<TOriginalProps & MorphaInjectedProps>,
+) => {
+  return class extends React.Component<TOriginalProps & MorphaProps> {
+    static contextTypes = MorphaProviderContextPropTypes;
 
-  static childContextTypes = MorphaContainerContextPropTypes;
+    static childContextTypes = MorphaContainerContextPropTypes;
 
-  _container: HTMLDivElement | null;
+    _container: HTMLDivElement | null;
 
-  render() {
-    const MorphaComponent = this.props.render;
-    return (
-      <div
-        style={{ height: '100%', width: '100%', ...this.props.style }}
-        ref={_container => (this._container = _container)}
-      >
-        {this.context.shouldRender({
-          name: this.props.name,
-          state: this.props.state,
-        }) && <MorphaComponent effectiveState={this.props.state} />}
-      </div>
-    );
-  }
-
-  getChildContext() {
-    return {
-      registerSubTransition: this.registerSubTransition.bind(this),
-      deregisterSubTransition: this.deregisterSubTransition.bind(this),
-    };
-  }
-
-  componentWillUnmount() {
-    let rect;
-    if (this._container) {
-      rect = clientRectToPOJO(this._container.getBoundingClientRect());
+    render() {
+      return (
+        <div
+          style={Object.assign(
+            { height: '100%', width: '100%' },
+            this.props.style,
+          )}
+          ref={_container => (this._container = _container)}
+        >
+          {this.context.shouldRender({
+            name: this.props.name,
+            state: this.props.state,
+          }) && (
+            <BaseComponent {...this.props} effectiveState={this.props.state} />
+          )}
+        </div>
+      );
     }
 
-    this.context.registerUnmount({
-      rect,
-      name: this.props.name,
-      state: this.props.state,
-    });
-  }
-
-  componentWillMount() {
-    this.context.registerMount({
-      name: this.props.name,
-      state: this.props.state,
-      render: this.props.render,
-    });
-  }
-
-  componentDidMount() {
-    let rect;
-    if (this._container) {
-      rect = clientRectToPOJO(this._container.getBoundingClientRect());
+    getChildContext() {
+      return {
+        registerSubTransition: this.registerSubTransition.bind(this),
+        deregisterSubTransition: this.deregisterSubTransition.bind(this),
+      };
     }
 
-    this.context.startTransition({
-      rect,
-      state: this.props.state,
-      name: this.props.name,
-    });
-  }
+    componentWillUnmount() {
+      let rect;
+      if (this._container) {
+        rect = clientRectToPOJO(this._container.getBoundingClientRect());
+      }
 
-  registerSubTransition(el: React.ComponentType, styles: ReactStateStyles) {}
-  deregisterSubTransition() {}
-}
+      this.context.registerUnmount({
+        rect,
+        name: this.props.name,
+        state: this.props.state,
+      });
+    }
+
+    componentWillMount() {
+      this.context.registerMount({
+        name: this.props.name,
+        state: this.props.state,
+        render: () => <BaseComponent {...this.props} />,
+      });
+    }
+
+    componentDidMount() {
+      let rect;
+      if (this._container) {
+        rect = clientRectToPOJO(this._container.getBoundingClientRect());
+      }
+
+      this.context.startTransition({
+        rect,
+        state: this.props.state,
+        name: this.props.name,
+      });
+    }
+
+    registerSubTransition(
+      el: React.ComponentType,
+      styles: Obj<React.CSSProperties>,
+    ) {}
+    deregisterSubTransition() {}
+  };
+};
 
 /*
 export class ScrollContainer extends React.Component {
