@@ -23,7 +23,7 @@ interface Item {
 const data = { items: _.keyBy(_.times(20, x => ({ id: `${x + 1}` })), 'id') };
 
 const MorphaItem = morpha(
-  ({ id, effectiveState }: MorphaInjectedProps & { id: string }) => (
+  ({ id, effectiveState }: MorphaInjectedProps & Item) => (
     <div
       style={{
         backgroundColor: '#ddd',
