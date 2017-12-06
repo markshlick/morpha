@@ -115,7 +115,7 @@ class MorphaTransition {
   }
 
   run(done: () => void) {
-    this.progress = Math.min(1, this.progress + this.progress / 6 + 0.02);
+    this.progress = Math.min(1, this.progress + this.progress / 20 + 0.02);
 
     this.step();
 
@@ -362,7 +362,7 @@ export const morpha = <TOriginalProps extends {}>(
       this.context.registerMount({
         name: this.props.name,
         state: this.props.state,
-        render: () => <BaseComponent {...this.props} />,
+        render: (props: any) => <BaseComponent {...this.props} {...props} />,
       });
     }
 

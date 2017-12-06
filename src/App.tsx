@@ -20,9 +20,7 @@ interface Item {
   id: string;
 }
 
-const items: Obj<Item> = _.keyBy(_.times(20, x => ({ id: `${x + 1}` })), 'id');
-
-const data = { items };
+const data = { items: _.keyBy(_.times(20, x => ({ id: `${x + 1}` })), 'id') };
 
 const MorphaItem = morpha(
   ({ id, effectiveState }: MorphaInjectedProps & { id: string }) => (
@@ -36,7 +34,7 @@ const MorphaItem = morpha(
     >
       <div
         style={{
-          transition: 'all 300ms',
+          transition: 'all 800ms',
           backgroundColor: '#444',
           height: effectiveState === 'small' ? '30%' : '50%',
         }}
@@ -46,7 +44,7 @@ const MorphaItem = morpha(
         style={{
           padding: '10px 20px',
           boxSizing: 'border-box',
-          transition: 'all 300ms',
+          transition: 'all 800ms',
           color: 'white',
           fontSize: effectiveState === 'small' ? 14 : 28,
           backgroundColor: effectiveState === 'small' ? '#6ab7ff' : '#1e88e5',
