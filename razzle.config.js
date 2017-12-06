@@ -24,7 +24,7 @@ module.exports = {
     const tsLoader = {
       include,
       test: /\.tsx?$/,
-      loader: 'ts-loader',
+      loader: require.resolve('ts-loader'),
       options: {
         // this will make errors clickable in `Problems` tab of VSCode
         visualStudioErrorFormat: true,
@@ -43,7 +43,7 @@ module.exports = {
     // };
 
     // Fully replace babel-loader with ts-loader
-    config.module.rules[babelLoader] = tsLoader;
+    // config.module.rules[babelLoader] = tsLoader;
     // config.module.rules.push(tslintLoader);
 
     // If you want to use Babel & Typescript together (e.g. if you
@@ -53,7 +53,7 @@ module.exports = {
     // - COMMENT out line 42
     // - UNCOMMENT line 52
     //
-    // config.module.rules.push(tsLoader)
+    config.module.rules.push(tsLoader);
 
     return config;
   },
