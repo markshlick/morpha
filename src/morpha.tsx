@@ -11,6 +11,7 @@ import * as PropTypes from 'prop-types';
   - expose a prop flag that will call MorphaProps.render with every transition
     tick (for vdom-driven libs like react-motion)
   - integrate with react-anime/CSSTransitionGroup
+  - interruptability/reversability
 */
 
 export interface MorphaInjectedProps {
