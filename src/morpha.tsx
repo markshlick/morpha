@@ -3,7 +3,6 @@ import * as PropTypes from 'prop-types';
 
 /*
   TODO:
-  - [priority] fix scroll bug
   - transition definitions to prevent copy/pasting the same config across
     multiple MorphaContainers
   - cache the element returned from MorphaProps.render to prevent unnecessary
@@ -67,10 +66,10 @@ const MorphaProviderContextPropTypes = {
   shouldRender: PropTypes.func.isRequired,
 };
 
-const MorphaContainerContextPropTypes = {
-  registerSubTransition: PropTypes.func.isRequired,
-  deregisterSubTransition: PropTypes.func.isRequired,
-};
+// const MorphaContainerContextPropTypes = {
+//   registerSubTransition: PropTypes.func.isRequired,
+//   deregisterSubTransition: PropTypes.func.isRequired,
+// };
 
 const clientRectToPOJO = (rect: ClientRect) => ({
   top: rect.top,
@@ -101,16 +100,6 @@ class MorphaTransition {
     this.idleState = fromState;
     this.fromState = fromState;
     this.progress = 0;
-  }
-
-  isReady() {
-    return (
-      this.render &&
-      this.fromState &&
-      this.toState &&
-      this.fromRect &&
-      this.toRect
-    );
   }
 
   prepareRun() {
@@ -195,15 +184,15 @@ export class MorphaProvider extends React.Component<{
   registerUnmount({
     name,
     state,
-    rect,
+    node,
   }: {
     name: string;
     state: string;
-    rect: ClientRectPOJO;
+    node: HTMLElement;
   }) {
     const transition = this.transitionStore[name];
     if (transition && transition.fromState === state) {
-      transition.fromRect = rect;
+      transition.fromRect = clientRectToPOJO(node.getBoundingClientRect());
     }
   }
 
@@ -230,33 +219,33 @@ export class MorphaProvider extends React.Component<{
 
   startTransition({
     name,
+    node,
     state,
-    rect,
   }: {
     name: string;
+    node: HTMLElement;
     state: string;
-    rect: ClientRectPOJO;
   }) {
     return new Promise(done => {
       const transition = this.transitionStore[name];
       if (transition && transition.fromState !== state) {
-        transition.toRect = rect;
-        if (transition.isReady()) {
-          transition.prepareRun();
-          transition.firstRun = true;
-          this.forceUpdate(() => {
-            transition.firstRun = false;
-            setTimeout(() => {
-              this.forceUpdate(() => {
-                setTimeout(() => {
-                  transition.run(() => {
-                    this.forceUpdate(done);
-                  });
+        transition.prepareRun();
+        transition.firstRun = true;
+        this.forceUpdate(() => {
+          transition.firstRun = false;
+          setTimeout(() => {
+            this.forceUpdate(() => {
+              setTimeout(() => {
+                transition.toRect = clientRectToPOJO(
+                  node.getBoundingClientRect(),
+                );
+                transition.run(() => {
+                  this.forceUpdate(done);
                 });
               });
             });
           });
-        }
+        });
       }
     });
   }
@@ -331,7 +320,7 @@ export const morpha = <TOriginalProps extends {}>(
   return class extends React.Component<TOriginalProps & MorphaProps> {
     static contextTypes = MorphaProviderContextPropTypes;
 
-    static childContextTypes = MorphaContainerContextPropTypes;
+    // static childContextTypes = MorphaContainerContextPropTypes;
 
     _container: HTMLDivElement | null;
 
@@ -354,21 +343,16 @@ export const morpha = <TOriginalProps extends {}>(
       );
     }
 
-    getChildContext() {
-      return {
-        registerSubTransition: this.registerSubTransition.bind(this),
-        deregisterSubTransition: this.deregisterSubTransition.bind(this),
-      };
-    }
+    // getChildContext() {
+    //   return {
+    //     registerSubTransition: this.registerSubTransition.bind(this),
+    //     deregisterSubTransition: this.deregisterSubTransition.bind(this),
+    //   };
+    // }
 
     componentWillUnmount() {
-      let rect;
-      if (this._container) {
-        rect = clientRectToPOJO(this._container.getBoundingClientRect());
-      }
-
       this.context.registerUnmount({
-        rect,
+        node: this._container,
         name: this.props.name,
         state: this.props.state,
       });
@@ -383,23 +367,18 @@ export const morpha = <TOriginalProps extends {}>(
     }
 
     componentDidMount() {
-      let rect;
-      if (this._container) {
-        rect = clientRectToPOJO(this._container.getBoundingClientRect());
-      }
-
       this.context.startTransition({
-        rect,
+        node: this._container,
         state: this.props.state,
         name: this.props.name,
       });
     }
 
-    registerSubTransition(
-      el: React.ComponentType,
-      styles: Obj<React.CSSProperties>,
-    ) {}
-    deregisterSubTransition() {}
+    // registerSubTransition(
+    //   el: React.ComponentType,
+    //   styles: Obj<React.CSSProperties>,
+    // ) {}
+    // deregisterSubTransition() {}
   };
 };
 
