@@ -230,14 +230,13 @@ export class MorphaProvider extends React.Component<{
         transition.prepareRun();
         transition.firstRun = true;
         this.forceUpdate(() => {
+          // wait for scroll restoration
           setTimeout(() => {
             transition.firstRun = false;
-            this.forceUpdate(() => {
-              transition.toRect = clientRectToPOJO(
-                node.getBoundingClientRect(),
-              );
-              transition.run(() => this.forceUpdate(done));
-            });
+            transition.toRect = clientRectToPOJO(node.getBoundingClientRect());
+            this.forceUpdate(() =>
+              transition.run(() => this.forceUpdate(done)),
+            );
           });
         });
       }
