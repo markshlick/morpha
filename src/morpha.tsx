@@ -1,11 +1,19 @@
 import * as React from 'react';
 import * as PropTypes from 'prop-types';
 
+export interface MorphaInjectedProps {
+  isMorphing?: boolean;
+  fromState?: string;
+  toState?: string;
+  idleState?: string;
+  effectiveState?: string;
+}
+
 interface MorphaProps {
   style?: React.CSSProperties;
   name: string;
   state: string;
-  render: React.ComponentType;
+  render: React.ComponentType<MorphaInjectedProps>;
 }
 
 interface TransitionProps {
@@ -14,13 +22,14 @@ interface TransitionProps {
   fromState: string;
   toRect: ClientRect;
   fromRect: ClientRect;
-  render: React.ComponentType;
+  render: React.ComponentType<MorphaInjectedProps>;
+  firstRun: boolean;
 }
 
 interface TransitionConfigProps {
   name: string;
   state: string;
-  render: React.ComponentType;
+  render: React.ComponentType<MorphaInjectedProps>;
   rect?: ClientRect;
 }
 
@@ -61,6 +70,7 @@ class MorphaTransition {
   progress: number;
   topOffset: number;
   running: boolean;
+  firstRun: boolean;
   node: HTMLElement | null;
 
   constructor({ name, fromState }: { name: string; fromState: string }) {
@@ -90,7 +100,7 @@ class MorphaTransition {
   }
 
   run(done: () => void) {
-    this.progress = Math.min(1, this.progress + this.progress / 8 + 0.02);
+    this.progress = Math.min(1, this.progress + this.progress / 3 + 0.03);
 
     this.step();
 
@@ -135,7 +145,7 @@ class MorphaTransition {
 }
 
 export class MorphaProvider extends React.Component<{
-  style?: { [attr: string]: any };
+  style?: React.CSSProperties;
 }> {
   static childContextTypes = MorphaProviderContextPropTypes;
 
@@ -207,9 +217,17 @@ export class MorphaProvider extends React.Component<{
         transition.toRect = rect;
         if (transition.isReady()) {
           transition.prepareRun();
+          transition.firstRun = true;
           this.forceUpdate(() => {
-            transition.run(() => {
-              this.forceUpdate(done);
+            transition.firstRun = false;
+            setTimeout(() => {
+              this.forceUpdate(() => {
+                setTimeout(() => {
+                  transition.run(() => {
+                    this.forceUpdate(done);
+                  });
+                });
+              });
             });
           });
         }
@@ -232,26 +250,40 @@ export class MorphaProvider extends React.Component<{
   renderTransitioningComponents() {
     return Object.values(this.transitionStore)
       .filter(({ running }) => running)
-      .map(({ name, render, fromRect }: TransitionProps) => {
-        const MorphaComponent = render;
+      .map(
+        ({
+          name,
+          render,
+          fromRect,
+          fromState,
+          toState,
+          firstRun,
+        }: TransitionProps) => {
+          const MorphaComponent = render;
 
-        return (
-          <div
-            key={name}
-            ref={node => (this.transitionStore[name].node = node)}
-            style={{
-              position: 'fixed',
-              transform: 'translate3d(0, 0, 0)',
-              top: fromRect.top,
-              left: fromRect.left,
-              width: fromRect.width,
-              height: fromRect.height,
-            }}
-          >
-            <MorphaComponent />
-          </div>
-        );
-      });
+          return (
+            <div
+              key={name}
+              ref={node => (this.transitionStore[name].node = node)}
+              style={{
+                position: 'fixed',
+                transform: 'translate3d(0, 0, 0)',
+                top: fromRect.top,
+                left: fromRect.left,
+                width: fromRect.width,
+                height: fromRect.height,
+              }}
+            >
+              <MorphaComponent
+                fromState={fromState}
+                toState={toState}
+                isMorphing={true}
+                effectiveState={firstRun ? fromState : toState}
+              />
+            </div>
+          );
+        },
+      );
   }
 
   render() {
@@ -268,13 +300,14 @@ export class MorphaProvider extends React.Component<{
 }
 
 const MorphaContainerContextPropTypes = {
-  registerSubtransition: PropTypes.func.isRequired,
+  registerSubTransition: PropTypes.func.isRequired,
+  deregisterSubTransition: PropTypes.func.isRequired,
 };
 
 export class MorphaContainer extends React.Component<MorphaProps> {
   static contextTypes = MorphaProviderContextPropTypes;
 
-  // static childContextTypes = MorphaContainerContextPropTypes;
+  static childContextTypes = MorphaContainerContextPropTypes;
 
   _container: HTMLDivElement | null;
 
@@ -288,16 +321,17 @@ export class MorphaContainer extends React.Component<MorphaProps> {
         {this.context.getTransitionRunningState({
           name: this.props.name,
           state: this.props.state,
-        }) && <MorphaComponent />}
+        }) && <MorphaComponent effectiveState={this.props.state} />}
       </div>
     );
   }
 
-  // getChildContext() {
-  //   return {
-  //     registerSubtransition: this.registerSubtransition.bind(this),
-  //   };
-  // }
+  getChildContext() {
+    return {
+      registerSubTransition: this.registerSubTransition.bind(this),
+      deregisterSubTransition: this.deregisterSubTransition.bind(this),
+    };
+  }
 
   componentWillUnmount() {
     let rect;
@@ -333,7 +367,8 @@ export class MorphaContainer extends React.Component<MorphaProps> {
     });
   }
 
-  // registerSubtransition(cb) {}
+  registerSubTransition(el: React.ComponentType, styles: StateStyles) {}
+  deregisterSubTransition() {}
 }
 
 export class ScrollContainer extends React.Component {
@@ -379,6 +414,25 @@ export class ScrollContainer extends React.Component {
 //   }
 // }
 
-export const morphStyles = (styles: object) => (
-  x: React.ComponentType<{ [key: string]: any }>,
-) => x;
+interface StateStyles {
+  [key: string]: React.CSSProperties;
+}
+
+export const morphStyles = (styles: StateStyles) => <TOriginalProps extends {}>(
+  BaseComponent: React.ComponentType<TOriginalProps>,
+) => {
+  return class extends React.Component<TOriginalProps> {
+    // static contextTypes = MorphaContainerContextPropTypes;
+    componentDidMount() {
+      // this.context.registerSubTransition(this, styles);
+    }
+
+    componentWillUnmount() {
+      // this.context.deregisterSubTransition();
+    }
+
+    render() {
+      return <BaseComponent {...this.props} />;
+    }
+  };
+};
