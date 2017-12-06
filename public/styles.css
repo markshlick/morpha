@@ -5,14 +5,14 @@
 }
 
 * a {
-  color: rgb(145, 91, 181);
+  color: inherit;
 }
 
 html,
 body {
   height: 100%;
   color: #222;
-  font-size: 18pt;
+  font-size: 16pt;
 }
 
 body {
