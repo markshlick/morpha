@@ -2,8 +2,15 @@ import * as React from 'react';
 import * as PropTypes from 'prop-types';
 
 /*
-  TODO: cache the element returned from MorphaProps.render to prevent
-  unnecessary (un)mounts
+  TODO:
+  - transition definitions to prevent copy/pasting the same config across
+    multiple MorphaContainers
+  - cache the element returned from MorphaProps.render to prevent unnecessary
+    (un)mounts
+  - easings
+  - expose a prop flag that will call MorphaProps.render with every transition
+    tick (for vdom-driven libs like react-motion)
+  - integrate with react-anime/CSSTransitionGroup
 */
 
 export interface MorphaInjectedProps {
@@ -42,7 +49,7 @@ const MorphaProviderContextPropTypes = {
   registerUnmount: PropTypes.func.isRequired,
   registerMount: PropTypes.func.isRequired,
   startTransition: PropTypes.func.isRequired,
-  getTransitionRunningState: PropTypes.func.isRequired,
+  shouldRender: PropTypes.func.isRequired,
 };
 
 interface ClientRectPOJO {
@@ -98,14 +105,17 @@ class MorphaTransition {
   prepareRun() {
     const topOffset =
       window.pageYOffset || document.documentElement.scrollTop || 0;
+    const leftOffset =
+      window.pageXOffset || document.documentElement.scrollLeft || 0;
     this.running = true;
     this.progress = 0;
     this.movingRect = { ...this.fromRect };
     this.movingRect.top -= topOffset;
+    this.movingRect.left -= leftOffset;
   }
 
   run(done: () => void) {
-    this.progress = Math.min(1, this.progress + this.progress / 3 + 0.03);
+    this.progress = Math.min(1, this.progress + this.progress / 6 + 0.02);
 
     this.step();
 
@@ -167,7 +177,7 @@ export class MorphaProvider extends React.Component<{
       registerUnmount: this.registerUnmount.bind(this),
       registerMount: this.registerMount.bind(this),
       startTransition: this.startTransition.bind(this),
-      getTransitionRunningState: this.getTransitionRunningState.bind(this),
+      shouldRender: this.shouldRender.bind(this),
     };
   }
 
@@ -240,7 +250,7 @@ export class MorphaProvider extends React.Component<{
     });
   }
 
-  getTransitionRunningState({ name, state }: any) {
+  shouldRender({ name, state }: { name: string; state: string }) {
     if (!this.transitionStore[name]) {
       return false;
     }
@@ -323,7 +333,7 @@ export class MorphaContainer extends React.Component<MorphaProps> {
         style={{ height: '100%', width: '100%', ...this.props.style }}
         ref={_container => (this._container = _container)}
       >
-        {this.context.getTransitionRunningState({
+        {this.context.shouldRender({
           name: this.props.name,
           state: this.props.state,
         }) && <MorphaComponent effectiveState={this.props.state} />}
