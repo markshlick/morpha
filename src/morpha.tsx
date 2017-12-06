@@ -45,13 +45,6 @@ interface TransitionConfigProps {
   rect?: ClientRect;
 }
 
-const MorphaProviderContextPropTypes = {
-  registerUnmount: PropTypes.func.isRequired,
-  registerMount: PropTypes.func.isRequired,
-  startTransition: PropTypes.func.isRequired,
-  shouldRender: PropTypes.func.isRequired,
-};
-
 interface ClientRectPOJO {
   top: number;
   right: number;
@@ -60,6 +53,22 @@ interface ClientRectPOJO {
   width: number;
   height: number;
 }
+
+interface ReactStateStyles {
+  [key: string]: React.CSSProperties;
+}
+
+const MorphaProviderContextPropTypes = {
+  registerUnmount: PropTypes.func.isRequired,
+  registerMount: PropTypes.func.isRequired,
+  startTransition: PropTypes.func.isRequired,
+  shouldRender: PropTypes.func.isRequired,
+};
+
+const MorphaContainerContextPropTypes = {
+  registerSubTransition: PropTypes.func.isRequired,
+  deregisterSubTransition: PropTypes.func.isRequired,
+};
 
 const clientRectToPOJO = (rect: ClientRect) => ({
   top: rect.top,
@@ -314,11 +323,6 @@ export class MorphaProvider extends React.Component<{
   }
 }
 
-const MorphaContainerContextPropTypes = {
-  registerSubTransition: PropTypes.func.isRequired,
-  deregisterSubTransition: PropTypes.func.isRequired,
-};
-
 export class MorphaContainer extends React.Component<MorphaProps> {
   static contextTypes = MorphaProviderContextPropTypes;
 
@@ -382,10 +386,11 @@ export class MorphaContainer extends React.Component<MorphaProps> {
     });
   }
 
-  registerSubTransition(el: React.ComponentType, styles: StateStyles) {}
+  registerSubTransition(el: React.ComponentType, styles: ReactStateStyles) {}
   deregisterSubTransition() {}
 }
 
+/*
 export class ScrollContainer extends React.Component {
   render() {
     return (
@@ -414,26 +419,28 @@ export class ScrollContainer extends React.Component {
     );
   }
 }
+*/
 
-// interface MorphaContentProps {
-//   name: string;
-//   render: React.ComponentType;
-// }
-
-// export class MorphaContent {
-//   name: string;
-//   render: React.ComponentType;
-//   constructor({ render, name }: MorphaContentProps) {
-//     this.name = name;
-//     this.render = render;
-//   }
-// }
-
-interface StateStyles {
-  [key: string]: React.CSSProperties;
+/*
+interface MorphaContentProps {
+  name: string;
+  render: React.ComponentType;
 }
 
-export const morphStyles = (styles: StateStyles) => <TOriginalProps extends {}>(
+export class MorphaContent {
+  name: string;
+  render: React.ComponentType;
+  constructor({ render, name }: MorphaContentProps) {
+    this.name = name;
+    this.render = render;
+  }
+}
+*/
+
+/*
+export const morphStyles = (styles: ReactStateStyles) => <
+  TOriginalProps extends {}
+>(
   BaseComponent: React.ComponentType<TOriginalProps>,
 ) => {
   return class extends React.Component<TOriginalProps> {
@@ -451,3 +458,4 @@ export const morphStyles = (styles: StateStyles) => <TOriginalProps extends {}>(
     }
   };
 };
+*/

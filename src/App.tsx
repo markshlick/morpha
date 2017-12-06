@@ -2,12 +2,7 @@ import * as React from 'react';
 import * as PropTypes from 'prop-types';
 import { BrowserRouter as Router, Route, Link } from 'react-router-dom';
 
-import {
-  MorphaInjectedProps,
-  MorphaProvider,
-  MorphaContainer,
-  morphStyles,
-} from './morpha';
+import { MorphaInjectedProps, MorphaProvider, MorphaContainer } from './morpha';
 
 interface Item {
   id: string;
@@ -71,8 +66,6 @@ const FeatureItem = ({
   </div>
 );
 
-const MorphItem = morphStyles({})(FeatureItem);
-
 const Home = ({ items }: { items: { [id: string]: Item } }) => (
   <div
     style={{
@@ -98,7 +91,7 @@ const Home = ({ items }: { items: { [id: string]: Item } }) => (
           <MorphaContainer
             name={`card.${id}`}
             state="small"
-            render={props => <MorphItem {...props} id={id} />}
+            render={props => <FeatureItem {...props} id={id} />}
           />
         </Link>
       </div>
@@ -119,7 +112,7 @@ const Feature = ({ item: { id } }: { item: { id: string } }) => (
     <MorphaContainer
       name={`card.${id}`}
       state="large"
-      render={props => <MorphItem {...props} id={id} />}
+      render={props => <FeatureItem {...props} id={id} />}
     />
   </div>
 );
